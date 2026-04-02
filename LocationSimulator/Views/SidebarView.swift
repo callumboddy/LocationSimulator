@@ -100,6 +100,13 @@ struct DeviceRow: View {
     let imageName: String
 
     var body: some View {
-        Label(name, systemImage: imageName)
+        Label {
+            Text(name)
+                .lineLimit(1)
+        } icon: {
+            Image(systemName: imageName)
+                .foregroundStyle(.primary)
+        }
+        .padding(.vertical, 2)
     }
 }

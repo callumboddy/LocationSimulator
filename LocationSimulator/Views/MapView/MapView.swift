@@ -141,6 +141,22 @@ class MapView: MKMapView {
 
     // MARK: - Zoom
 
+    /// Zoom in by halving the current span.
+    public func zoomMapIn() {
+        var region = self.region
+        region.span.latitudeDelta /= 2
+        region.span.longitudeDelta /= 2
+        self.setRegion(region, animated: true)
+    }
+
+    /// Zoom out by doubling the current span.
+    public func zoomMapOut() {
+        var region = self.region
+        region.span.latitudeDelta = min(region.span.latitudeDelta * 2, 180)
+        region.span.longitudeDelta = min(region.span.longitudeDelta * 2, 360)
+        self.setRegion(region, animated: true)
+    }
+
     /// Zoom the mapView to a specific location.
     /// - Parameter coordinate: the coordinate to zoom to
     public func zoomToLocation(_ coordinate: CLLocationCoordinate2D, animated: Bool) {

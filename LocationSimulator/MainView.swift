@@ -21,6 +21,22 @@ struct MainView: View {
         }
         .toolbar {
             ToolbarItemGroup(placement: .automatic) {
+                // Zoom out
+                Button {
+                    mapActions.mapViewController?.mapView?.zoomMapOut()
+                } label: {
+                    Image(systemName: "minus.magnifyingglass")
+                }
+                .help("Zoom out")
+
+                // Zoom in
+                Button {
+                    mapActions.mapViewController?.mapView?.zoomMapIn()
+                } label: {
+                    Image(systemName: "plus.magnifyingglass")
+                }
+                .help("Zoom in")
+
                 // Autofocus
                 Button {
                     autofocus.toggle()

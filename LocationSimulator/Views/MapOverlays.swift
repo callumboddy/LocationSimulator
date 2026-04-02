@@ -19,8 +19,7 @@ struct SpinnerOverlay: View {
                     ProgressView()
                         .controlSize(.small)
                         .padding(10)
-                        .background(.ultraThinMaterial)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .glassEffect(.regular, in: .rect(cornerRadius: 12))
                 }
                 Spacer()
             }
@@ -46,9 +45,7 @@ struct MovementControlsOverlay: View {
                             .font(.title2)
                             .frame(width: 44, height: 44)
                     }
-                    .buttonStyle(.plain)
-                    .background(.ultraThinMaterial)
-                    .clipShape(Circle())
+                    .buttonStyle(.glass)
                     .onLongPressGesture {
                         onToggleAutoMove()
                     }
@@ -83,8 +80,11 @@ struct StatusOverlay: View {
                         .monospacedDigit()
 
                     if playPauseState != .hidden {
-                        Image(systemName: playPauseState == .paused ? "play.fill" : "pause.fill")
-                            .foregroundStyle(.secondary)
+                        Image(
+                            systemName: playPauseState == .paused
+                                ? "play.fill" : "pause.fill"
+                        )
+                        .foregroundStyle(.secondary)
                     }
 
                     if showError {
@@ -95,10 +95,9 @@ struct StatusOverlay: View {
                         .buttonStyle(.plain)
                     }
                 }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(.ultraThinMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .glassEffect(.regular, in: .capsule)
 
                 Spacer()
             }

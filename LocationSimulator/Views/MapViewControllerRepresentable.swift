@@ -40,6 +40,8 @@ struct MapViewRepresentable: NSViewRepresentable {
     func makeNSView(context: Context) -> MapView {
         let mapView = MapView(frame: .zero)
         mapView.mapType = UserDefaults.standard.mapType
+        mapView.showsZoomControls = false
+        mapView.showsCompass = false
         mapView.reloadBookmarkAnnotations()
 
         // Create a MapViewController from storyboard to use as the controller
