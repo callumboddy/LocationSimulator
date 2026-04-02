@@ -1899,7 +1899,7 @@
         <!--Split View Controller-->
         <scene sceneID="w9I-nq-WiP">
             <objects>
-                <splitViewController id="An9-GB-bXJ" customClass="SplitViewController" customModule="LocationSimulator" customModuleProvider="target" sceneMemberID="viewController">
+                <splitViewController storyboardIdentifier="SplitViewController" id="An9-GB-bXJ" customClass="SplitViewController" customModule="LocationSimulator" customModuleProvider="target" sceneMemberID="viewController">
                     <splitViewItems>
                         <splitViewItem canCollapse="YES" holdingPriority="260" behavior="sidebar" id="1UO-2w-8D4"/>
                         <splitViewItem id="gR5-vt-xam"/>

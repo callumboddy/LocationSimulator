@@ -28,12 +28,8 @@ struct LocationSimulatorApp: App {
     }
 
     var body: some Scene {
-        // The main window is still created by the storyboard via NSMainStoryboardFile.
-        // This Settings scene is a placeholder — the storyboard preferences will be
-        // migrated to SwiftUI in PR7. For now, the existing preferences work via the
-        // storyboard menu bar action.
-        Settings {
-            EmptyView()
+        WindowGroup {
+            MainView()
         }
     }
 }

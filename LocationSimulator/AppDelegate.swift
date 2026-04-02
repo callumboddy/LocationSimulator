@@ -14,18 +14,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private var onboardingWindow: NSWindow?
 
-    private var mainWindowController: NSWindowController?
-
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         self.menubarController.loadDefaults()
-
-        // Manually instantiate the main window from the storyboard since @main App
-        // no longer auto-loads NSMainStoryboardFile's initial controller.
-        let storyboard = NSStoryboard(name: "Main", bundle: nil)
-        if let windowController = storyboard.instantiateInitialController() as? NSWindowController {
-            windowController.showWindow(nil)
-            self.mainWindowController = windowController
-        }
 
         NotificationCenter.default.addObserver(self, selector: #selector(windowDidMove(notification:)),
                                                name: NSWindow.didMoveNotification, object: nil)
