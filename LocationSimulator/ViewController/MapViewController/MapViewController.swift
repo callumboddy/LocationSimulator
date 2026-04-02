@@ -22,6 +22,12 @@ import LocationSpoofer
         return self.view as? ContentView
     }
 
+    /// The active window — prefers mapView's window (when embedded via SwiftUI)
+    /// over the view controller's own view window.
+    var activeWindow: NSWindow? {
+        return self.mapView?.window ?? self.activeWindow
+    }
+
     // MARK: - Properties
 
     /// Current instance to spoof the iOS device location.
@@ -222,7 +228,7 @@ import LocationSpoofer
     }
 
     /// Show a dialog to name a bookmark, with reverse-geocoded placeholder.
-    private func showBookmarkDialog(for coordinate: CLLocationCoordinate2D) {
+    func showBookmarkDialog(for coordinate: CLLocationCoordinate2D) {
         let geocoder = CLGeocoder()
         let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
 
@@ -319,7 +325,7 @@ import LocationSpoofer
     override func viewDidAppear() {
         super.viewDidAppear()
         // Show the window controller.
-        self.view.window?.makeFirstResponder(self.mapView)
+        self.activeWindow?.makeFirstResponder(self.mapView)
         // change the autofocus state and thereby update the toolbar button as well
         self.autofocusCurrentLocation = true
         // Try to load the current device if it is not yet connected.
@@ -327,7 +333,7 @@ import LocationSpoofer
     }
 
     override func mouseDown(with event: NSEvent) {
-        self.view.window?.makeFirstResponder(self.mapView)
+        self.activeWindow?.makeFirstResponder(self.mapView)
         super.mouseDown(with: event)
     }
 
@@ -338,7 +344,7 @@ import LocationSpoofer
     public func zoomTo(region: MKCoordinateRegion) {
         self.mapView.setRegion(region, animated: true)
         // Make the mapview the first responder.
-        self.view.window?.makeFirstResponder(self.mapView)
+        self.activeWindow?.makeFirstResponder(self.mapView)
     }
 
     /// Reset the current location.
@@ -427,7 +433,7 @@ import LocationSpoofer
     /// - Parameter iOSVersion: the version number to download the image for
     /// - Return: true on success, false otherwise
     func downloadDeveloperDiskImage(os: String, iOSVersion: String) -> Bool {
-        guard let window = self.view.window else { return false }
+        guard let window = self.activeWindow else { return false }
         // Show the alert and thereby start the download progress.
         let alert = DownloadProgressAlert(developerDiskImage: DeveloperDiskImage(os: os, version: iOSVersion))
         let response = alert.runSheetModal(forWindow: window)
@@ -450,7 +456,7 @@ import LocationSpoofer
     }
 
     @objc private func pairingFailed(error: Error) {
-        guard !self.deviceIsConnectd, let device = device, let window = self.view.window else { return }
+        guard !self.deviceIsConnectd, let device = device, let window = self.activeWindow else { return }
 
         self.contentView?.stopSpinner()
         self.deviceIsConnectd = false
@@ -553,7 +559,7 @@ import LocationSpoofer
     /// - Parameter toCoordinate: new coordinates or nil
     func requestTeleportOrNavigation(toCoordinate coord: CLLocationCoordinate2D? = nil) {
         // make sure we can spoof a location and no dialog is currently showing
-        guard !self.isShowingAlert, let window = self.view.window else { return }
+        guard !self.isShowingAlert, let window = self.activeWindow else { return }
         // Limit the amount of alerts of this kind to one.
         self.isShowingAlert = true
         // If a coordinate is provided to this function the user can not input one.
@@ -585,10 +591,10 @@ import LocationSpoofer
     /// - Parameter route: the coordinates for this GPX route
     func requestGPXRouting(route: [CLLocationCoordinate2D]) {
         // make sure we can spoof a location and no dialog is currently showing
-        guard !self.isShowingAlert, let window = self.view.window else { return }
+        guard !self.isShowingAlert, let window = self.activeWindow else { return }
         // We need at least one coordinate
         guard !route.isEmpty else {
-            self.view.window?.showError("EMPTY_ROUTE", message: "EMPTY_ROUTE_MSG")
+            self.activeWindow?.showError("EMPTY_ROUTE", message: "EMPTY_ROUTE_MSG")
             return
         }
         let showNavigation = self.spoofer?.currentLocation != nil
