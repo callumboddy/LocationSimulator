@@ -41,7 +41,7 @@
 	<key>NSMainStoryboardFile</key>
 	<string>Main</string>
 	<key>NSPrincipalClass</key>
-	<string>LSApplication</string>
+	<string>NSApplication</string>
 	<key>OSAScriptingDefinition</key>
 	<string>applescript.sdef</string>
 </dict>
