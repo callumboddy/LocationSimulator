@@ -11,11 +11,13 @@ Delivered as 8 sequential PRs, each leaving the app fully functional. All PRs me
 | PR1 | SwiftUI App shell | Done |
 | PR2 | Observable models | Done |
 | PR3 | SwiftUI Sidebar + Map detail | Done |
-| PR4 | Toolbar & menus | Pending |
-| PR5 | Map overlay controls | Partially done (placeholder overlays in place) |
+| PR4 | Toolbar | Done (slimmed to autofocus + zoom) |
+| PR5 | Map overlay controls + Liquid Glass | Done (placeholder wiring) |
+| - | Remove Donate feature | Done |
+| - | Remove AppleScript support | Done |
 | PR6 | Dialogs & sheets | Pending |
-| PR7 | Secondary windows | Pending |
-| PR8 | Cleanup | Pending |
+| PR7 | Secondary windows (Preferences, Log) | Pending |
+| PR8 | Cleanup dead AppKit code | Pending |
 
 ---
 
@@ -31,6 +33,12 @@ Delivered as 8 sequential PRs, each leaving the app fully functional. All PRs me
 | `f46d86f` | Add SwiftUI map detail with overlays | PR3/PR5 |
 | `582e691` | Use ipod.and.applewatch icon for simulator pairs | PR3 |
 | `a465338` | Wire MapViewController as non-visual coordinator for spoofing | PR3 |
+| `bcc5969` | Update migration progress report | - |
+| `b826f4e` | Remove Donate feature entirely | Cleanup |
+| `ae4621a` | Remove AppleScript support entirely | Cleanup |
+| `d5502c3` | Add SwiftUI toolbar with autofocus and zoom buttons | PR4 |
+| `ccb7108` | Wire toolbar buttons to map actions | PR4 |
+| `6e96d9f` | Liquid Glass styling + zoom controls in toolbar | PR4/PR5 |
 
 ---
 
