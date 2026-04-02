@@ -10,12 +10,32 @@ import SwiftUI
 /// Root view of the application.
 struct MainView: View {
     @Environment(DeviceManager.self) private var deviceManager
+    @State private var autofocus: Bool = true
 
     var body: some View {
         NavigationSplitView {
             SidebarView()
         } detail: {
             DetailView()
+        }
+        .toolbar {
+            ToolbarItemGroup(placement: .automatic) {
+                // Autofocus
+                Button {
+                    autofocus.toggle()
+                } label: {
+                    Image(systemName: autofocus ? "location.fill" : "location")
+                }
+                .help("Autofocus current location")
+
+                // Zoom to current location
+                Button {
+                    // TODO: Wire to zoom to current spoofed location
+                } label: {
+                    Image(systemName: "scope")
+                }
+                .help("Zoom to current location")
+            }
         }
         .onAppear {
             deviceManager.startDiscovery()
