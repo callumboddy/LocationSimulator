@@ -140,6 +140,7 @@ class MenubarController: NSResponder {
     public func loadDefaults() {
         self.apply(status: self.deviceStatus)
         self.loadRecentLocations()
+        self.setupBookmarks()
         NavigationMenubarItem.selectMoveItem(forMoveType: .walk)
         ViewMenubarItem.selectMapTypeItem(forMapType: UserDefaults.standard.mapType)
     }
@@ -279,6 +280,66 @@ class MenubarController: NSResponder {
             // Add the menubaritem
             RecentLocationMenubarItem.addLocationMenuItem(loc)
         }
+    }
+
+    // MARK: - Bookmarks Submenu
+
+    /// Set up the bookmarks menu and listen for changes.
+    private func setupBookmarks() {
+        BookmarkMenubarItem.setupMenu()
+        BookmarkMenubarItem.reloadBookmarks()
+
+        NotificationCenter.default.addObserver(
+            forName: .BookmarksChanged, object: nil, queue: .main
+        ) { [weak self] _ in
+            _ = self  // prevent unused warning
+            BookmarkMenubarItem.reloadBookmarks()
+        }
+    }
+
+    /// Navigate to a bookmarked location.
+    @objc func selectBookmark(_ sender: NSMenuItem) {
+        let bookmarks = BookmarkStore.shared.allBookmarks
+        guard sender.tag >= 0 && sender.tag < bookmarks.count else { return }
+        let loc = bookmarks[sender.tag]
+        let coord = CLLocationCoordinate2D(latitude: loc.lat, longitude: loc.long)
+        self.windowController?.requestLocationChange(coord: coord)
+    }
+
+    /// Rename a bookmark.
+    @objc func renameBookmark(_ sender: NSMenuItem) {
+        let bookmarks = BookmarkStore.shared.allBookmarks
+        guard sender.tag >= 0 && sender.tag < bookmarks.count else { return }
+        let bookmark = bookmarks[sender.tag]
+
+        let alert = NSAlert()
+        alert.messageText = "RENAME_BOOKMARK_TITLE".localized
+        alert.informativeText = "RENAME_BOOKMARK_MESSAGE".localized
+        alert.addButton(withTitle: "SAVE".localized)
+        alert.addButton(withTitle: "CANCEL".localized)
+
+        let textField = NSTextField(frame: NSRect(x: 0, y: 0, width: 250, height: 24))
+        textField.stringValue = bookmark.name
+        textField.isEditable = true
+        textField.isSelectable = true
+        alert.accessoryView = textField
+        alert.window.initialFirstResponder = textField
+
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        let newName = textField.stringValue.trimmingCharacters(in: .whitespaces)
+        guard !newName.isEmpty else { return }
+
+        BookmarkStore.shared.rename(at: sender.tag, to: newName)
+    }
+
+    /// Delete a bookmark.
+    @objc func deleteBookmark(_ sender: NSMenuItem) {
+        BookmarkStore.shared.delete(at: sender.tag)
+    }
+
+    /// Clear all bookmarks.
+    @IBAction func clearBookmarks(_ sender: NSMenuItem) {
+        BookmarkStore.shared.clearAll()
     }
 
     // MARK: - File Menu

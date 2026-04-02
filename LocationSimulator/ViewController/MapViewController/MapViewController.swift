@@ -214,6 +214,57 @@ import LocationSpoofer
         self.mapView.longPressAction = mapViewAction
         // Current location marker was dragged. Navigate or teleport to the new location.
         self.mapView.markerDragAction = mapViewAction
+
+        // Callback when the user right-clicks and selects "Bookmark this location".
+        self.mapView.bookmarkAction = { [weak self] coordinate in
+            self?.showBookmarkDialog(for: coordinate)
+        }
+    }
+
+    /// Show a dialog to name a bookmark, with reverse-geocoded placeholder.
+    private func showBookmarkDialog(for coordinate: CLLocationCoordinate2D) {
+        let geocoder = CLGeocoder()
+        let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+
+        geocoder.reverseGeocodeLocation(location) { [weak self] placemarks, _ in
+            DispatchQueue.main.async {
+                let placeholder = placemarks?.first?.formattedAddress
+                    ?? String(format: "%.4f, %.4f", coordinate.latitude, coordinate.longitude)
+                self?.presentBookmarkNameAlert(
+                    placeholder: placeholder, coordinate: coordinate
+                )
+            }
+        }
+    }
+
+    /// Present the NSAlert with a text field to name the bookmark.
+    private func presentBookmarkNameAlert(
+        placeholder: String,
+        coordinate: CLLocationCoordinate2D
+    ) {
+        let alert = NSAlert()
+        alert.messageText = "BOOKMARK_DIALOG_TITLE".localized
+        alert.informativeText = "BOOKMARK_DIALOG_MESSAGE".localized
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "SAVE".localized)
+        alert.addButton(withTitle: "CANCEL".localized)
+
+        let textField = NSTextField(frame: NSRect(x: 0, y: 0, width: 250, height: 24))
+        textField.placeholderString = placeholder
+        textField.stringValue = placeholder
+        textField.isEditable = true
+        textField.isSelectable = true
+        alert.accessoryView = textField
+
+        // Make the text field first responder so the user can type immediately
+        alert.window.initialFirstResponder = textField
+
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+
+        let name = textField.stringValue.trimmingCharacters(in: .whitespaces)
+        guard !name.isEmpty else { return }
+
+        BookmarkStore.shared.add(name: name, coordinate: coordinate)
     }
 
     /// Register all observers to respond to users setting changes.
@@ -237,6 +288,9 @@ import LocationSpoofer
 
     // MARK: - View lifecycle
 
+    /// Observer for bookmark changes.
+    private var bookmarkObserver: NSObjectProtocol?
+
     override func viewDidLoad() {
         super.viewDidLoad()
         // Reset the contentView to its default values
@@ -252,6 +306,13 @@ import LocationSpoofer
             self.geocodingTask = GeocodingTask { [weak self] name in
                 self?.view.window?.title = name
             }
+        }
+        // Load bookmark pins and listen for changes
+        self.mapView.reloadBookmarkAnnotations()
+        self.bookmarkObserver = NotificationCenter.default.addObserver(
+            forName: .BookmarksChanged, object: nil, queue: .main
+        ) { [weak self] _ in
+            self?.mapView.reloadBookmarkAnnotations()
         }
     }
 

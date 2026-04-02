@@ -19,6 +19,9 @@ class MapView: MKMapView {
     /// Action to perform on a long press.
     public var longPressAction: MapViewAction?
 
+    /// Action to perform when "Bookmark this location" is selected from the context menu.
+    public var bookmarkAction: ((CLLocationCoordinate2D) -> Void)?
+
     /// Action to perform when the current location marker is dragged
     public var markerDragAction: MapViewAction?
 
@@ -75,6 +78,33 @@ class MapView: MKMapView {
         return super.hitTest(point)
     }
 
+    // MARK: - Right-click context menu
+
+    /// The coordinate where the user right-clicked, used by the context menu action.
+    private var rightClickCoordinate: CLLocationCoordinate2D?
+
+    override func menu(for event: NSEvent) -> NSMenu? {
+        guard event.type == .rightMouseDown else { return super.menu(for: event) }
+
+        let loc = self.convert(event.locationInWindow, from: nil)
+        rightClickCoordinate = self.convert(loc, toCoordinateFrom: self)
+
+        let menu = NSMenu()
+        let bookmarkItem = NSMenuItem(
+            title: "BOOKMARK_THIS_LOCATION".localized,
+            action: #selector(bookmarkRightClickLocation(_:)),
+            keyEquivalent: ""
+        )
+        bookmarkItem.target = self
+        menu.addItem(bookmarkItem)
+        return menu
+    }
+
+    @objc private func bookmarkRightClickLocation(_ sender: NSMenuItem) {
+        guard let coordinate = rightClickCoordinate else { return }
+        bookmarkAction?(coordinate)
+    }
+
     // MARK: - Long press
 
     /// Callback when the map view is long pressed. Ask the user if he wants to teleport or navigate to the selected
@@ -86,6 +116,26 @@ class MapView: MKMapView {
             let coordinate = self.convert(loc, toCoordinateFrom: self)
             // Call the assigned action
             self.longPressAction?(self.currentLocationMarker?.coordinate, coordinate)
+        }
+    }
+
+    // MARK: - Bookmark annotations
+
+    /// Reload all bookmark annotations from the store.
+    func reloadBookmarkAnnotations() {
+        // Remove existing bookmark annotations
+        let existing = self.annotations.compactMap { $0 as? BookmarkAnnotation }
+        self.removeAnnotations(existing)
+
+        // Add all current bookmarks
+        for bookmark in BookmarkStore.shared.allBookmarks {
+            let annotation = BookmarkAnnotation(
+                coordinate: CLLocationCoordinate2D(
+                    latitude: bookmark.lat, longitude: bookmark.long
+                ),
+                name: bookmark.name
+            )
+            self.addAnnotation(annotation)
         }
     }
 

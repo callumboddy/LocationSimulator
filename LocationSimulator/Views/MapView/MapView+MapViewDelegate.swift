@@ -10,6 +10,7 @@ import Foundation
 import MapKit
 
 let kAnnotationViewCurrentLocationIdentifier = "AnnotationViewCurrentLocationIdentifier"
+let kAnnotationViewBookmarkIdentifier = "AnnotationViewBookmarkIdentifier"
 
 /// This delegate is responsible for providing a polyline when navigation is active.
 /// Additionally it handles the track gesture of the current location marker and informs observer about the action.
@@ -39,8 +40,9 @@ extension MapView: MKMapViewDelegate {
 
     // MARK: - Current location marker
 
-    /// Create the view for the current location marker.
+    /// Create the view for the current location marker or bookmark annotations.
     func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
+        // Current location marker
         if let pointAnnotation = annotation as? MKPointAnnotation, pointAnnotation == self.currentLocationMarker {
             var annotationView = mapView.dequeueReusableAnnotationView(
                 withIdentifier: kAnnotationViewCurrentLocationIdentifier)
@@ -56,7 +58,35 @@ extension MapView: MKMapViewDelegate {
             return annotationView
         }
 
+        // Bookmark annotation
+        if let bookmarkAnnotation = annotation as? BookmarkAnnotation {
+            var annotationView = mapView.dequeueReusableAnnotationView(
+                withIdentifier: kAnnotationViewBookmarkIdentifier
+            ) as? MKPinAnnotationView
+
+            if annotationView == nil {
+                annotationView = MKPinAnnotationView(
+                    annotation: bookmarkAnnotation,
+                    reuseIdentifier: kAnnotationViewBookmarkIdentifier
+                )
+                annotationView?.canShowCallout = true
+                annotationView?.pinTintColor = .systemOrange
+            } else {
+                annotationView?.annotation = bookmarkAnnotation
+            }
+
+            return annotationView
+        }
+
         return nil
+    }
+
+    /// Handle selection of bookmark annotations to trigger teleport/navigate.
+    func mapView(_ mapView: MKMapView, didSelect view: MKAnnotationView) {
+        if let bookmark = view.annotation as? BookmarkAnnotation {
+            mapView.deselectAnnotation(view.annotation, animated: true)
+            self.longPressAction?(self.currentLocationMarker?.coordinate, bookmark.coordinate)
+        }
     }
 
     /// Current location marker was dragged.
