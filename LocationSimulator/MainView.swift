@@ -7,30 +7,37 @@
 
 import SwiftUI
 
-/// Root view of the application. Currently wraps the existing AppKit
-/// split view controller from the storyboard. This will be progressively
-/// replaced with native SwiftUI views in subsequent PRs.
+/// Root view of the application. Uses NavigationSplitView with a native
+/// SwiftUI sidebar and the existing MapViewController as the detail view.
 struct MainView: View {
+    @Environment(DeviceManager.self) private var deviceManager
+
     var body: some View {
-        StoryboardWindowRepresentable()
-            .ignoresSafeArea()
+        NavigationSplitView {
+            SidebarView()
+        } detail: {
+            DetailView()
+        }
+        .onAppear {
+            deviceManager.startDiscovery()
+        }
     }
 }
 
-/// Wraps the existing storyboard-based SplitViewController as the main content.
-/// This preserves all existing functionality during the SwiftUI migration.
-struct StoryboardWindowRepresentable: NSViewControllerRepresentable {
+/// Shows the map when a device is selected, or a placeholder otherwise.
+struct DetailView: View {
+    @Environment(DeviceManager.self) private var deviceManager
 
-    func makeNSViewController(context: Context) -> SplitViewController {
-        let storyboard = NSStoryboard(name: "Main", bundle: nil)
-        guard let splitVC = storyboard.instantiateController(
-            withIdentifier: "SplitViewController"
-        ) as? SplitViewController else {
-            fatalError("Could not instantiate SplitViewController from storyboard")
+    var body: some View {
+        if deviceManager.selectedDevice != nil || deviceManager.selectedPair != nil {
+            MapViewControllerRepresentable()
+                .ignoresSafeArea()
+        } else {
+            ContentUnavailableView(
+                "No Device Selected",
+                systemImage: "iphone.slash",
+                description: Text("Select a device from the sidebar to begin.")
+            )
         }
-        return splitVC
-    }
-
-    func updateNSViewController(_ nsViewController: SplitViewController, context: Context) {
     }
 }
