@@ -13,6 +13,9 @@ import LocationSpoofer
 struct LocationSimulatorApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
+    @State private var deviceManager = DeviceManager()
+    @State private var spooferState = SpooferState()
+
     init() {
         // Init the logger before we start the application.
         FileManager.default.initLogger()
@@ -30,6 +33,9 @@ struct LocationSimulatorApp: App {
     var body: some Scene {
         WindowGroup {
             MainView()
+                .environment(deviceManager)
+                .environment(spooferState)
+                .environment(BookmarkStore.shared)
         }
     }
 }

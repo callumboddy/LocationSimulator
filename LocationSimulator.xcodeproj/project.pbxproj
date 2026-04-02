@@ -9,6 +9,8 @@
 /* Begin PBXBuildFile section */
 		CB00000226040200000000D1 /* LocationSimulatorApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB00000226040200000000D0 /* LocationSimulatorApp.swift */; };
 		CB00000226040200000000E1 /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB00000226040200000000E0 /* MainView.swift */; };
+		CB00000226040200000000F1 /* DeviceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB00000226040200000000F0 /* DeviceManager.swift */; };
+		CB00000226040200000001A1 /* SpooferState.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB00000226040200000001A0 /* SpooferState.swift */; };
 		13BA351E20A433EF00A0431C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13BA351D20A433EF00A0431C /* Assets.xcassets */; };
 		6304FF8B298B17CA002DE6CD /* OnboardViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6304FF8A298B17CA002DE6CD /* OnboardViewController.swift */; };
 		6304FF8D298B1F0E002DE6CD /* ArrowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6304FF8C298B1F0E002DE6CD /* ArrowView.swift */; };
@@ -188,6 +190,8 @@
 /* Begin PBXFileReference section */
 		CB00000226040200000000D0 /* LocationSimulatorApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationSimulatorApp.swift; sourceTree = "<group>"; };
 		CB00000226040200000000E0 /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
+		CB00000226040200000000F0 /* DeviceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Models/DeviceManager.swift"; sourceTree = "<group>"; };
+		CB00000226040200000001A0 /* SpooferState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Models/SpooferState.swift"; sourceTree = "<group>"; };
 		130F510920AE9634002A61F1 /* WindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowController.swift; sourceTree = "<group>"; };
 		130F510B20AED69B002A61F1 /* NSView+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSView+Extension.swift"; sourceTree = "<group>"; };
 		13BA351620A433EE00A0431C /* LocationSimulator.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LocationSimulator.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -478,6 +482,8 @@
 				13BA351920A433EE00A0431C /* AppDelegate.swift */,
 				CB00000226040200000000D0 /* LocationSimulatorApp.swift */,
 				CB00000226040200000000E0 /* MainView.swift */,
+				CB00000226040200000000F0 /* DeviceManager.swift */,
+				CB00000226040200000001A0 /* SpooferState.swift */,
 				633C74D425AA2CE800161DB4 /* Main.storyboard */,
 				6372E37728247B9500188416 /* AppleScript */,
 				635CF715280E03670092A99B /* Donate */,
@@ -1439,6 +1445,8 @@
 				C11B75C32F7E71A0005BE06D /* PairedLocationSpoofer.swift in Sources */,
 				CB00000226040200000000D1 /* LocationSimulatorApp.swift in Sources */,
 				CB00000226040200000000E1 /* MainView.swift in Sources */,
+				CB00000226040200000000F1 /* DeviceManager.swift in Sources */,
+				CB00000226040200000001A1 /* SpooferState.swift in Sources */,
 				6354BE562A9406F600178BA1 /* AddPersonalizedDeveloperDiskImageAlert.swift in Sources */,
 				6372E37928247BA900188416 /* ASDevice.swift in Sources */,
 				633C750225AA78F900161DB4 /* String+Extension.swift in Sources */,
