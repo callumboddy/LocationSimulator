@@ -11,18 +11,20 @@ import SwiftUI
 struct MainView: View {
     @Environment(DeviceManager.self) private var deviceManager
     @State private var autofocus: Bool = true
+    @State private var mapActions = MapActions()
 
     var body: some View {
         NavigationSplitView {
             SidebarView()
         } detail: {
-            DetailView()
+            DetailView(mapActions: mapActions)
         }
         .toolbar {
             ToolbarItemGroup(placement: .automatic) {
                 // Autofocus
                 Button {
                     autofocus.toggle()
+                    mapActions.mapViewController?.autofocusCurrentLocation = autofocus
                 } label: {
                     Image(systemName: autofocus ? "location.fill" : "location")
                 }
@@ -30,7 +32,7 @@ struct MainView: View {
 
                 // Zoom to current location
                 Button {
-                    // TODO: Wire to zoom to current spoofed location
+                    mapActions.zoomToCurrentLocation()
                 } label: {
                     Image(systemName: "scope")
                 }
@@ -46,10 +48,11 @@ struct MainView: View {
 /// Shows the map when a device is selected, or a placeholder otherwise.
 struct DetailView: View {
     @Environment(DeviceManager.self) private var deviceManager
+    var mapActions: MapActions
 
     var body: some View {
         if deviceManager.selectedDevice != nil || deviceManager.selectedPair != nil {
-            MapDetailView()
+            MapDetailView(mapActions: mapActions)
         } else {
             ContentUnavailableView(
                 "No Device Selected",
@@ -62,7 +65,8 @@ struct DetailView: View {
 
 /// The map with SwiftUI overlays.
 struct MapDetailView: View {
-    // TODO: Wire these to SpooferState once the spoofer is connected
+    var mapActions: MapActions
+
     @State private var isSpinning = false
     @State private var showControls = false
     @State private var isAutoMoving = false
@@ -72,7 +76,7 @@ struct MapDetailView: View {
 
     var body: some View {
         ZStack {
-            MapViewRepresentable()
+            MapViewRepresentable(mapActions: mapActions)
                 .ignoresSafeArea()
 
             SpinnerOverlay(isVisible: isSpinning)
@@ -80,21 +84,15 @@ struct MapDetailView: View {
             MovementControlsOverlay(
                 isVisible: showControls,
                 isHighlighted: isAutoMoving,
-                onMove: {
-                    // TODO: Wire to spoofer.move()
-                },
-                onToggleAutoMove: {
-                    // TODO: Wire to spoofer toggle auto move
-                }
+                onMove: {},
+                onToggleAutoMove: {}
             )
 
             StatusOverlay(
                 totalDistanceKM: totalDistanceKM,
                 playPauseState: playPauseState,
                 showError: showError,
-                onErrorTap: {
-                    // TODO: Wire to reconnect
-                }
+                onErrorTap: {}
             )
         }
     }

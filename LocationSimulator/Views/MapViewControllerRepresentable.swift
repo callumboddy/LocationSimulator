@@ -9,11 +9,23 @@ import SwiftUI
 import MapKit
 import LocationSpoofer
 
+/// Shared object for toolbar actions to communicate with the map.
+@Observable
+class MapActions {
+    var mapViewController: MapViewController?
+
+    func zoomToCurrentLocation() {
+        guard let coord = mapViewController?.spoofer?.currentLocation else { return }
+        mapViewController?.mapView?.zoomToLocation(coord, animated: true)
+    }
+}
+
 /// Wraps the custom MapView and uses MapViewController as a non-visual coordinator
 /// to manage spoofer lifecycle, device pairing, and location spoofing.
 struct MapViewRepresentable: NSViewRepresentable {
     @Environment(DeviceManager.self) private var deviceManager
     @Environment(SpooferState.self) private var spooferState
+    var mapActions: MapActions
 
     class Coordinator: NSObject {
         var mapViewController: MapViewController?
@@ -55,6 +67,7 @@ struct MapViewRepresentable: NSViewRepresentable {
             }
 
             context.coordinator.mapViewController = mapVC
+            mapActions.mapViewController = mapVC
         }
 
         // Listen for bookmark changes
