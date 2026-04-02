@@ -42,7 +42,7 @@ struct SidebarView: View {
                     ForEach(deviceManager.simulatorPairs, id: \.name) { pair in
                         DeviceRow(
                             name: "\(pair.phone.name) + \(pair.watch.name)",
-                            imageName: "iphone.and.applewatch"
+                            imageName: "ipod.and.applewatch"
                         )
                         .tag(SidebarItemID.pair(pair.name))
                     }
