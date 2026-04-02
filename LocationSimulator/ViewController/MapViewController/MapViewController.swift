@@ -27,6 +27,9 @@ import LocationSpoofer
     /// Current instance to spoof the iOS device location.
     var spoofer: LocationSpoofer?
 
+    /// Paired spoofer wrapping primary (Phone) and secondary (Watch) when a pair is selected.
+    var pairedSpoofer: PairedLocationSpoofer?
+
     /// The current device managed by this viewController. Assigning this property will NOT automatically try to connect
     /// the device. You still need to call `connectDevice`.
     public var device: Device? {
@@ -34,12 +37,46 @@ import LocationSpoofer
         set {
             // Either we removed the device or the new device is not connected yet.
             self.deviceIsConnectd = false
+            self.pairedSpoofer = nil
             // Check that the device exists.
             guard let device = newValue else { return }
             // Create a spoofer instance for this device.
             self.spoofer = LocationSpoofer(device)
             self.spoofer?.delegate = self
             // Apply the settings to the spoofer instance
+            if UserDefaults.standard.varyMovementSpeed {
+                self.spoofer?.movementSpeedVariance = kDefaultMovementSpeedVariance
+            }
+        }
+    }
+
+    /// Set a simulator pair. Creates a PairedLocationSpoofer that drives both devices.
+    /// The phone is the primary device used for all map interactions.
+    public var simulatorPair: SimulatorPair? {
+        get {
+            guard let pairedSpoofer = self.pairedSpoofer else { return nil }
+            // Reconstruct from the paired spoofer's devices
+            if let phone = pairedSpoofer.primary.device as? SimulatorDevice,
+               let watch = pairedSpoofer.secondary.device as? SimulatorDevice {
+                return SimulatorPair(phone: phone, watch: watch)
+            }
+            return nil
+        }
+        set {
+            self.deviceIsConnectd = false
+            guard let pair = newValue else {
+                self.pairedSpoofer = nil
+                return
+            }
+            // Create two spoofer instances
+            let primary = LocationSpoofer(pair.phone)
+            let secondary = LocationSpoofer(pair.watch)
+            let paired = PairedLocationSpoofer(phonePrimary: primary, watchSecondary: secondary)
+            paired.delegate = self
+            self.pairedSpoofer = paired
+            // The primary spoofer is what the rest of MapViewController interacts with
+            self.spoofer = primary
+            // Apply the settings
             if UserDefaults.standard.varyMovementSpeed {
                 self.spoofer?.movementSpeedVariance = kDefaultMovementSpeedVariance
             }

@@ -25,6 +25,7 @@
 	<key>com.apple.security.temporary-exception.sbpl</key>
 	<array>
 		<string>(allow network-outbound (literal &quot;/private/var/run/usbmuxd&quot;))</string>
+		<string>(allow file-read* (home-subpath &quot;/Library/Developer/CoreSimulator&quot;))</string>
 	</array>
 </dict>
 </plist>

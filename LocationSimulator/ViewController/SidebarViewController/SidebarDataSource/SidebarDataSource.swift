@@ -19,35 +19,78 @@ class SidebarDataSource: NSObject {
     /// List with all currently detected simulator devices.
     public var simDevices: [SimulatorDevice] = []
 
-    /// The currently selected device.
+    /// List of detected Watch-Phone simulator pairs (both booted).
+    public var simulatorPairs: [SimulatorPair] = []
+
+    /// UDIDs of devices that belong to an active pair (excluded from solo simulator list).
+    private var pairedDeviceUDIDs: Set<String> {
+        var udids = Set<String>()
+        for pair in simulatorPairs {
+            udids.insert(pair.phone.udid)
+            udids.insert(pair.watch.udid)
+        }
+        return udids
+    }
+
+    /// Solo simulators — excludes devices that are part of an active pair.
+    var unpairedSimDevices: [SimulatorDevice] {
+        let paired = pairedDeviceUDIDs
+        return simDevices.filter { !paired.contains($0.udid) }
+    }
+
+    /// Whether the "Simulator Pairs" section should be shown (at least one pair exists).
+    var showPairsSection: Bool {
+        return !simulatorPairs.isEmpty
+    }
+
+    /// Total number of rows: iOS header + iOS devices + Sim header + solo sims + (optional) Pairs header + pairs
+    private var totalRowCount: Int {
+        var count = 1 + realDevices.count + 1 + unpairedSimDevices.count
+        if showPairsSection {
+            count += 1 + simulatorPairs.count
+        }
+        return count
+    }
+
+    /// Row index where the Simulator Pairs header starts (if shown).
+    private var pairsSectionStartRow: Int {
+        return 1 + realDevices.count + 1 + unpairedSimDevices.count
+    }
+
+    /// The currently selected device or pair.
+    /// Returns a Device for solo devices, or a SimulatorPair for paired entries.
+    public var selectedItem: Any? {
+        get {
+            let row = self.sidebarView?.selectedRow ?? -1
+            guard row >= 0 else { return nil }
+            return item(forRow: row)
+        }
+    }
+
+    /// The currently selected device (nil if a pair is selected).
     public var selectedDevice: Device? {
         get {
-            let numIOSDevices = self.realDevices.count
-            let numSimDevices = self.simDevices.count
-            let row = (self.sidebarView?.selectedRow ?? 0)
-            if row <= numIOSDevices {
-                // A real iOS Device was selected
-                return row >= 1 ? self.realDevices[row-1] : nil
-            } else if row > numIOSDevices && row < numIOSDevices + numSimDevices + 2 {
-                // A simulator device was selected
-                return row > numIOSDevices+1 ? self.simDevices[row-numIOSDevices-2] : nil
-            }
-            return nil
+            return selectedItem as? Device
         }
         set {
             if let iosDevice = newValue as? IOSDevice,
                 let iosDeviceIndex = self.realDevices.firstIndex(of: iosDevice) {
-                self.sidebarView?.selectRowIndexes(IndexSet(integer: 1 + iosDeviceIndex), byExtendingSelection: false)
+                self.sidebarView?.selectRowIndexes(IndexSet(integer: 1 + iosDeviceIndex),
+                                                   byExtendingSelection: false)
             } else if let simDevice = newValue as? SimulatorDevice,
-                        let simDeviceIndex = self.simDevices.firstIndex(of: simDevice) {
-                let numIOSDevices = self.realDevices.count
-
-                self.sidebarView?.selectRowIndexes(IndexSet(integer: 2 + numIOSDevices + simDeviceIndex),
+                        let simDeviceIndex = self.unpairedSimDevices.firstIndex(of: simDevice) {
+                let row = 1 + realDevices.count + 1 + simDeviceIndex
+                self.sidebarView?.selectRowIndexes(IndexSet(integer: row),
                                                    byExtendingSelection: false)
             } else {
                 self.sidebarView?.deselectAll(nil)
             }
         }
+    }
+
+    /// The currently selected simulator pair (nil if a solo device is selected).
+    public var selectedPair: SimulatorPair? {
+        return selectedItem as? SimulatorPair
     }
 
     // MARK: - Constructor
@@ -61,6 +104,36 @@ class SidebarDataSource: NSObject {
         self.sidebarView?.delegate = self
     }
 
+    // MARK: - Row/Item mapping
+
+    /// Returns the item (header, device, or pair) for a given row index.
+    func item(forRow row: Int) -> Any? {
+        let numIOS = realDevices.count
+        let unpaired = unpairedSimDevices
+
+        // iOS Devices header
+        if row == 0 { return IOSDeviceHeader() }
+        // iOS Devices
+        if row <= numIOS { return realDevices[row - 1] }
+        // Simulators header
+        if row == numIOS + 1 { return SimDeviceHeader() }
+        // Solo simulators
+        let simStartRow = numIOS + 2
+        if row < simStartRow + unpaired.count { return unpaired[row - simStartRow] }
+
+        // Simulator Pairs section
+        if showPairsSection {
+            let pairsHeaderRow = pairsSectionStartRow
+            if row == pairsHeaderRow { return SimPairHeader() }
+            let pairIndex = row - pairsHeaderRow - 1
+            if pairIndex >= 0 && pairIndex < simulatorPairs.count {
+                return simulatorPairs[pairIndex]
+            }
+        }
+
+        return nil
+    }
+
     // MARK: - Public functions
 
     /// Update the text and image for the cell at the specific index.
@@ -72,22 +145,23 @@ class SidebarDataSource: NSObject {
         cell.textField?.stringValue = device.name
         cell.imageView?.image = device.image
     }
+
+    /// Refresh the simulator pairs list from simctl and reload the sidebar.
+    func refreshPairs() {
+        let oldPairs = simulatorPairs
+        simulatorPairs = SimulatorPairDiscovery.discoverPairs(knownSimulators: simDevices)
+
+        if oldPairs != simulatorPairs {
+            sidebarView?.reloadData()
+        }
+    }
 }
 
 // MARK: - NSOutlineViewDataSource
 
 extension SidebarDataSource: NSOutlineViewDataSource {
     func outlineView(_ outlineView: NSOutlineView, child index: Int, ofItem item: Any?) -> Any {
-        if index == 0 {
-            return IOSDeviceHeader()
-        }
-        if index <= self.realDevices.count {
-            return self.realDevices[index-1]
-        }
-        if index == self.realDevices.count+1 {
-            return SimDeviceHeader()
-        }
-        return self.simDevices[index-self.realDevices.count-2]
+        return self.item(forRow: index) ?? NSNull()
     }
 
     func outlineView(_ outlineView: NSOutlineView, isItemExpandable item: Any) -> Bool {
@@ -95,7 +169,7 @@ extension SidebarDataSource: NSOutlineViewDataSource {
     }
 
     func outlineView(_ outlineView: NSOutlineView, numberOfChildrenOfItem item: Any?) -> Int {
-        return 1 + self.realDevices.count + 1 + self.simDevices.count
+        return totalRowCount
     }
 }
 
@@ -117,7 +191,9 @@ extension SidebarDataSource: NSOutlineViewDelegate {
 
     func outlineView(_ outlineView: NSOutlineView, shouldSelectItem item: Any) -> Bool {
         // Do not allow selecting a header cell.
-        if (item as AnyObject) as? IOSDeviceHeader != nil || (item as AnyObject) as? SimDeviceHeader != nil {
+        if (item as AnyObject) as? IOSDeviceHeader != nil ||
+           (item as AnyObject) as? SimDeviceHeader != nil ||
+           (item as AnyObject) as? SimPairHeader != nil {
             return false
         }
 
@@ -128,6 +204,11 @@ extension SidebarDataSource: NSOutlineViewDelegate {
 
         if let simDevice = (item as AnyObject) as? SimulatorDevice {
             return ((self.selectedDevice as? SimulatorDevice) != simDevice)
+        }
+
+        // Allow selecting a pair, if it is not already selected.
+        if let pair = (item as AnyObject) as? SimulatorPair {
+            return self.selectedPair != pair
         }
 
         // Default, should never be the case.

@@ -38,14 +38,8 @@ extension SidebarDataSource {
             let index = self.realDevices.insertionIndexOf(device) { $0.name < $1.name }
             // Add the new device to the internal list and update the UI
             self.realDevices.insert(device, at: index)
-            // index +1 for the HeaderCell
-            self.sidebarView?.insertItems(at: [index+1], inParent: nil, withAnimation: .effectGap)
-
-            // If no device is selected, select the first.
-            /*if let rowCount = self.sidebarView?.numberOfSelectedRows, rowCount == 0 {
-                // Index 1, because we don't want to select the header.
-                self.sidebarView?.selectRowIndexes([1], byExtendingSelection: false)
-            }*/
+            // Reload to recalculate all row indices
+            self.sidebarView?.reloadData()
         } else if let device: SimulatorDevice = notification.userInfo?["device"] as? SimulatorDevice {
             // This should never be the case, but let's make sure that a device is unique.
             if self.simDevices.contains(device) { return }
@@ -54,11 +48,11 @@ extension SidebarDataSource {
             let index = self.simDevices.insertionIndexOf(device) { $0.name < $1.name }
             // Add the new device to the internal list and update the UI
             self.simDevices.insert(device, at: index)
-            // index +2 for the HeaderCells
-            let newIndex = 1 + self.realDevices.count + 1 + index
-            self.sidebarView?.insertItems(at: [newIndex], inParent: nil, withAnimation: .effectGap)
+            // Refresh pairs since a newly booted sim might complete a pair
+            self.refreshPairs()
+            // Reload to recalculate all row indices
+            self.sidebarView?.reloadData()
         }
-
     }
 
     /// Callback when a device gets paired for the first time with this computer.
@@ -103,32 +97,36 @@ extension SidebarDataSource {
                 let removeCurrent = (self.selectedDevice as? IOSDevice == self.realDevices.remove(at: index))
 
                 // If the current device was removed, we need to change the status to disconnect.
-                // We do this by removing the device instance.
                 if removeCurrent {
                     let windowController = self.sidebarView?.window?.windowController as? WindowController
                     windowController?.mapViewController?.device = nil
                 }
 
-                // index +1 for the HeaderCell
-                self.sidebarView?.removeItems(at: [index+1], inParent: nil, withAnimation: .effectGap)
+                self.sidebarView?.reloadData()
             }
         } else if let device: SimulatorDevice = notification.userInfo?["device"] as? SimulatorDevice {
             if let index: Int = self.simDevices.firstIndex(of: device) {
                 logInfo("SimulatorDevice \"\(device.udid)\" - \(device.name): Disconnected.")
 
+                // Check if this device was part of the selected pair
+                if let selectedPair = self.selectedPair,
+                   device.udid == selectedPair.phone.udid || device.udid == selectedPair.watch.udid {
+                    let windowController = self.sidebarView?.window?.windowController as? WindowController
+                    windowController?.mapViewController?.device = nil
+                }
+
                 // True if the currently selected device was removed.
                 let removeCurrent = (self.selectedDevice as? SimulatorDevice == self.simDevices.remove(at: index))
 
                 // If the current device was removed, we need to change the status to disconnect.
-                // We do this by removing the device instance.
                 if removeCurrent {
                     let windowController = self.sidebarView?.window?.windowController as? WindowController
                     windowController?.mapViewController?.device = nil
                 }
 
-                // index +2 for the HeaderCells + the real device count
-                let newIndex = 1 + self.realDevices.count + 1 + index
-                self.sidebarView?.removeItems(at: [newIndex], inParent: nil, withAnimation: .effectGap)
+                // Refresh pairs since a disconnected sim may break a pair
+                self.refreshPairs()
+                self.sidebarView?.reloadData()
             }
         }
     }

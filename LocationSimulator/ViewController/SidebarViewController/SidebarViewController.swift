@@ -67,6 +67,11 @@ class SidebarViewController: NSViewController {
         IOSDevice.startGeneratingDeviceNotifications()
         SimulatorDevice.startGeneratingDeviceNotifications()
 
+        // Refresh pairs after a short delay to allow all simulators to be discovered first.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+            self?.dataSource?.refreshPairs()
+        }
+
         // Add a searchbar to the sidebar in macOS 11 and up
         if kEnableSidebarSearchField {
             self.setupSearchField()
@@ -170,7 +175,19 @@ class SidebarViewController: NSViewController {
                 // On macOS 11 use the line toolbar separator style for the MapViewController. Otherwise use None.
                 var drawSeparator: Bool = false
                 var viewController: Any?
-                if let device = self.dataSource?.selectedDevice {
+                if let pair = self.dataSource?.selectedPair {
+                    drawSeparator = true
+                    // A pair was selected => create and show the corresponding MapViewController.
+                    viewController = self.storyboard?.instantiateController(withIdentifier: "MapViewController")
+                    if let mapViewController = viewController as? MapViewController {
+                        mapViewController.simulatorPair = pair
+                        // Set the currently selected move type.
+                        let windowController = self.view.window?.windowController as? WindowController
+                        mapViewController.moveType = windowController?.moveType
+                        mapViewController.speed = windowController?.speed ?? 0
+                        mapViewController.mapType = UserDefaults.standard.mapType
+                    }
+                } else if let device = self.dataSource?.selectedDevice {
                     drawSeparator = true
                     // A device was connected => create and show the corresponding MapViewController.
                     viewController = self.storyboard?.instantiateController(withIdentifier: "MapViewController")
