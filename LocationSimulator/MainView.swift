@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import LocationSpoofer
 
 /// Root view of the application.
 struct MainView: View {
@@ -20,6 +21,20 @@ struct MainView: View {
             DetailView(mapActions: mapActions)
         }
         .toolbar {
+            ToolbarItem(placement: .automatic) {
+                @Bindable var mapActions = mapActions
+                Picker("Speed", selection: $mapActions.moveType) {
+                    Image(systemName: "figure.walk").tag(MoveType.walk)
+                        .help("Walk (5 km/h)")
+                    Image(systemName: "bicycle").tag(MoveType.cycle)
+                        .help("Cycle (15 km/h)")
+                    Image(systemName: "car.fill").tag(MoveType.drive)
+                        .help("Drive (40 km/h)")
+                }
+                .pickerStyle(.segmented)
+                .help("Movement speed")
+            }
+
             ToolbarItemGroup(placement: .automatic) {
                 // Zoom out
                 Button {

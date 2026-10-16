@@ -22,6 +22,9 @@ class MapView: MKMapView {
     /// Action to perform when "Bookmark this location" is selected from the context menu.
     public var bookmarkAction: ((CLLocationCoordinate2D) -> Void)?
 
+    /// Action to perform when "Simulate move to here" is selected from the context menu.
+    public var simulateMoveAction: ((CLLocationCoordinate2D) -> Void)?
+
     /// Action to perform when the current location marker is dragged
     public var markerDragAction: MapViewAction?
 
@@ -97,12 +100,29 @@ class MapView: MKMapView {
         )
         bookmarkItem.target = self
         menu.addItem(bookmarkItem)
+
+        // Only show "Simulate move" if we have a current location to move from
+        if self.currentLocationMarker?.coordinate != nil {
+            let moveItem = NSMenuItem(
+                title: "Simulate Move to Here",
+                action: #selector(simulateMoveToRightClickLocation(_:)),
+                keyEquivalent: ""
+            )
+            moveItem.target = self
+            menu.addItem(moveItem)
+        }
+
         return menu
     }
 
     @objc private func bookmarkRightClickLocation(_ sender: NSMenuItem) {
         guard let coordinate = rightClickCoordinate else { return }
         bookmarkAction?(coordinate)
+    }
+
+    @objc private func simulateMoveToRightClickLocation(_ sender: NSMenuItem) {
+        guard let coordinate = rightClickCoordinate else { return }
+        simulateMoveAction?(coordinate)
     }
 
     // MARK: - Long press

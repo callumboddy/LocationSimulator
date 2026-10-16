@@ -12,7 +12,21 @@ import LocationSpoofer
 /// Shared object for toolbar actions to communicate with the map.
 @Observable
 class MapActions {
+    /// The SwiftUI window's map actions, used by the menu bar when there is no AppKit `WindowController`.
+    @ObservationIgnored static weak var current: MapActions?
+
     var mapViewController: MapViewController?
+
+    /// The selected move type. Changing it also resets the speed to the move type's default.
+    var moveType: MoveType = .walk {
+        didSet { applyMoveType() }
+    }
+
+    func applyMoveType() {
+        mapViewController?.moveType = moveType
+        mapViewController?.speed = moveType.speed
+        NavigationMenubarItem.selectMoveItem(forMoveType: moveType)
+    }
 
     func zoomToCurrentLocation() {
         guard let coord = mapViewController?.spoofer?.currentLocation else { return }
@@ -31,6 +45,15 @@ struct MapViewRepresentable: NSViewRepresentable {
         var mapViewController: MapViewController?
         var currentDeviceUDID: String?
         var currentPairName: String?
+        /// Queued waypoints for "Simulate Move to Here"
+        var waypoints: [CLLocationCoordinate2D] = []
+        /// Local monitor for arrow key movement. The SwiftUI app has no storyboard menu, so the arrow key
+        /// equivalents from the Navigation menu do not exist.
+        var keyMonitor: Any?
+
+        deinit {
+            if let keyMonitor { NSEvent.removeMonitor(keyMonitor) }
+        }
     }
 
     func makeCoordinator() -> Coordinator {
@@ -67,9 +90,47 @@ struct MapViewRepresentable: NSViewRepresentable {
             mapView.bookmarkAction = { [weak mapVC] coordinate in
                 mapVC?.showBookmarkDialog(for: coordinate)
             }
+            let coordinator = context.coordinator
+            mapView.simulateMoveAction = { [weak mapVC] destination in
+                guard let spoofer = mapVC?.spoofer else { return }
+
+                // Add to waypoint queue (max 20)
+                if coordinator.waypoints.count < 20 {
+                    coordinator.waypoints.append(destination)
+                }
+
+                // Build full route: current location + all queued waypoints
+                guard let current = spoofer.currentLocation else { return }
+                let fullRoute = [current] + coordinator.waypoints
+
+                spoofer.switchToNavigationState(fullRoute)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    spoofer.startAutoUpdate()
+                }
+            }
 
             context.coordinator.mapViewController = mapVC
             mapActions.mapViewController = mapVC
+            MapActions.current = mapActions
+
+            coordinator.keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) {
+                [weak mapView, weak mapVC] event in
+                guard let mapVC, let window = mapView?.window, event.window == window,
+                      // Leave arrow keys alone while typing, e.g. in the search field
+                      !(window.firstResponder is NSText),
+                      event.modifierFlags.intersection([.command, .option, .control, .shift]).isEmpty
+                else { return event }
+
+                let direction: WindowController.MoveDirection
+                switch event.keyCode {
+                case 123: direction = .left
+                case 124: direction = .right
+                case 125: direction = .down
+                case 126: direction = .up
+                default: return event
+                }
+                return mapVC.handleArrowKey(direction) ? nil : event
+            }
         }
 
         // Listen for bookmark changes
@@ -92,6 +153,7 @@ struct MapViewRepresentable: NSViewRepresentable {
                 coord.currentPairName = pair.name
                 coord.currentDeviceUDID = nil
                 mapVC.simulatorPair = pair
+                mapActions.applyMoveType()
                 mapVC.connectDevice()
             }
         }
@@ -101,6 +163,7 @@ struct MapViewRepresentable: NSViewRepresentable {
                 coord.currentDeviceUDID = device.udid
                 coord.currentPairName = nil
                 mapVC.device = device
+                mapActions.applyMoveType()
                 mapVC.connectDevice()
             }
         }

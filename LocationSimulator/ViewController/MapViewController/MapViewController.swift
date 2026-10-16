@@ -50,6 +50,7 @@ import LocationSpoofer
             self.spoofer = LocationSpoofer(device)
             self.spoofer?.delegate = self
             // Apply the settings to the spoofer instance
+            self.applyDefaultSpeed()
             if UserDefaults.standard.varyMovementSpeed {
                 self.spoofer?.movementSpeedVariance = kDefaultMovementSpeedVariance
             }
@@ -83,6 +84,7 @@ import LocationSpoofer
             // The primary spoofer is what the rest of MapViewController interacts with
             self.spoofer = primary
             // Apply the settings
+            self.applyDefaultSpeed()
             if UserDefaults.standard.varyMovementSpeed {
                 self.spoofer?.movementSpeedVariance = kDefaultMovementSpeedVariance
             }
@@ -101,6 +103,13 @@ import LocationSpoofer
     var speed: CLLocationSpeed {
         get { return self.spoofer?.speed ?? 0 }
         set { self.spoofer?.speed = newValue }
+    }
+
+    /// LocationSpoofer starts with a speed of 0, which means navigation and arrow key moves go nowhere. Default to
+    /// the speed of the current move type until the user picks one.
+    private func applyDefaultSpeed() {
+        guard let spoofer = self.spoofer, spoofer.speed == 0 else { return }
+        spoofer.speed = spoofer.moveType.speed
     }
 
     var mapType: MKMapType {
@@ -376,6 +385,69 @@ import LocationSpoofer
         try? self.spoofer?.move()
     }
 
+    /// Move the spoofed location using the traditional behaviour.
+    /// - Parameter direction: up or down
+    public func moveTraditional(_ direction: WindowController.MoveDirection) {
+        let angle = self.getDirectionViewAngle()
+        switch direction {
+        //    |                 x | x      x | x               x | x
+        // ---|--- ==========> ---|--- or ---|--- ==========> ---|---
+        //  x | x   arrow up      |          |     arrow up      |
+        case .up:   self.move(flip: angle > 90 && angle < 270)
+        //  x | x                 |          |                   |
+        // ---|--- ==========> ---|--- or ---|--- ==========> ---|---
+        //    |    arrow down   x | x      x | x  arrow down   x | x
+        case .down: self.move(flip: angle < 90 || angle > 270)
+        // Do nothing on left or right.
+        default: break
+        }
+    }
+
+    /// Move the spoofed location using the natural behaviour.
+    /// - Parameter direction: up, down, left or right
+    public func moveNatural(_ direction: WindowController.MoveDirection) {
+        switch direction {
+        case .up:    self.rotateDirectionViewTo(0)
+        case .left:  self.rotateDirectionViewTo(90)
+        case .down:  self.rotateDirectionViewTo(180)
+        case .right: self.rotateDirectionViewTo(270)
+        }
+        self.move(flip: false)
+    }
+
+    /// Handle an arrow key press. Arrow keys move the location in manual mode, and steer in auto mode.
+    /// - Parameter direction: the pressed arrow key
+    /// - Return: true if the key press was handled, false if movement is not possible right now
+    @discardableResult
+    public func handleArrowKey(_ direction: WindowController.MoveDirection) -> Bool {
+        guard let spoofer = self.spoofer, spoofer.currentLocation != nil else { return false }
+
+        let isAuto: Bool
+        switch spoofer.moveState {
+        case .manual:     isAuto = false
+        case .auto:       isAuto = true
+        case .navigation: return false
+        }
+
+        let traditional = UserDefaults.standard.movementControlBehaviour == .traditional || isAuto
+        switch direction {
+        case .right: traditional ? self.rotate(.clockwise)        : self.moveNatural(.right)
+        case .left:  traditional ? self.rotate(.counterclockwise) : self.moveNatural(.left)
+        case .down:  traditional ? self.moveTraditional(.down)    : self.moveNatural(.down)
+        case .up:    traditional ? self.moveTraditional(.up)      : self.moveNatural(.up)
+        }
+        return true
+    }
+
+    /// Rotate the direction overlay.
+    /// - Parameter direction: clockwise or counterclockwise
+    public func rotate(_ direction: WindowController.RotateDirection) {
+        switch direction {
+        case .clockwise:        self.rotateDirectionViewBy(-5.0)
+        case .counterclockwise: self.rotateDirectionViewBy(5.0)
+        }
+    }
+
     /// Toggle between the automove and the manual move state. If a navigation is running, it will be paused / resumed.
     public func toggleAutoMove() {
         switch self.spoofer?.moveState {
@@ -517,34 +589,18 @@ import LocationSpoofer
 
     // MARK: - Teleport or Navigate
 
-    /// Calculate the route from the current location to the specified coordinates and start the navigation.
+    /// Navigate in a straight line from the current location to the specified coordinates.
     /// After the navigation to `toCoordinate` is finished, continue the navigation for the path specified in
     /// `additionalRoute`.
     /// - Parameter toCoordinate: tagret location.
-    /// - Parameter additionalRoute: additional route to append to the calculated route
+    /// - Parameter additionalRoute: additional route to append after reaching the target location
     private func navigate(toCoordinate coord: CLLocationCoordinate2D, additionalRoute: [CLLocationCoordinate2D] = []) {
         guard let spoofer = self.spoofer, let currentLoc = spoofer.currentLocation else { return }
 
         spoofer.stopAutoUpdate()
-        self.contentView?.startSpinner()
 
-        currentLoc.calculateRouteTo(coord, transportType: spoofer.moveType.transportType) { [weak self] route in
-            var newRoute: [CLLocationCoordinate2D] = []
-            // Always start at the current location
-            if route.first != currentLoc {
-                newRoute += [currentLoc]
-            }
-            newRoute += route
-            // Always end at the destination, even if the route ends at the street
-            if route.last != coord {
-                newRoute += [coord]
-            }
-            // Add any additional route
-            newRoute += additionalRoute
-
-            self?.spoofer?.switchToNavigationState(newRoute)
-            self?.contentView?.stopSpinner()
-        }
+        // Golf course use case: go as the crow flies rather than following roads and paths.
+        spoofer.switchToNavigationState([currentLoc, coord] + additionalRoute)
     }
 
     func teleportToStartAndNavigate(route: [CLLocationCoordinate2D]) {

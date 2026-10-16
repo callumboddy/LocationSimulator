@@ -31,7 +31,7 @@ class SpooferState {
     var moveType: MoveType = .walk
 
     /// Current speed.
-    var speed: CLLocationSpeed = 0
+    var speed: CLLocationSpeed = MoveType.walk.speed
 
     // MARK: - Device Setup
 
