@@ -7,6 +7,7 @@
 
 import Foundation
 import CoreLocation
+import Observation
 
 let kBookmarkLocationKey: String = "com.schlaubischlump.locationsimulator.bookmarks"
 
@@ -16,6 +17,7 @@ extension Notification.Name {
 
 /// Manages persistence of bookmark locations in UserDefaults.
 /// Bookmarks are stored as an array of Location objects, sorted alphabetically by name.
+@Observable
 class BookmarkStore {
 
     static let shared = BookmarkStore()

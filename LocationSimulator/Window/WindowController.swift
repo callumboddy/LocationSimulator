@@ -259,47 +259,19 @@ class WindowController: NSWindowController {
     /// Move the spoofed location using the traditional behaviour.
     /// - Parameter direction: up or down
     public func moveTraditional(_ direction: MoveDirection) {
-        guard let angle = self.mapViewController?.getDirectionViewAngle() else { return }
-        switch direction {
-        //    |                 x | x      x | x               x | x
-        // ---|--- ==========> ---|--- or ---|--- ==========> ---|---
-        //  x | x   arrow up      |          |     arrow up      |
-        case .up:   self.mapViewController?.move(flip: angle > 90 && angle < 270)
-        //  x | x                 |          |                   |
-        // ---|--- ==========> ---|--- or ---|--- ==========> ---|---
-        //    |    arrow down   x | x      x | x  arrow down   x | x
-        case .down: self.mapViewController?.move(flip: angle < 90 || angle > 270)
-        // Do nothing on left or right.
-        default: break
-        }
+        self.mapViewController?.moveTraditional(direction)
     }
 
     /// Move the spoofed location using the natural behaviour.
     /// - Parameter direction: up, down, left or right
     public func moveNatural(_ direction: MoveDirection) {
-        switch direction {
-        case .up:
-            self.mapViewController?.rotateDirectionViewTo(0)
-            self.mapViewController?.move(flip: false)
-        case .left:
-            self.mapViewController?.rotateDirectionViewTo(90)
-            self.mapViewController?.move(flip: false)
-        case .down:
-            self.mapViewController?.rotateDirectionViewTo(180)
-            self.mapViewController?.move(flip: false)
-        case .right:
-            self.mapViewController?.rotateDirectionViewTo(270)
-            self.mapViewController?.move(flip: false)
-        }
+        self.mapViewController?.moveNatural(direction)
     }
 
     /// Rotate the direction overlay.
     /// - Parameter direction: clockwise or counterclockwise
     public func rotate(_ direction: RotateDirection) {
-        switch direction {
-        case .clockwise:        self.mapViewController?.rotateDirectionViewBy(-5.0)
-        case .counterclockwise: self.mapViewController?.rotateDirectionViewBy(5.0)
-        }
+        self.mapViewController?.rotate(direction)
     }
 
     /// Return a list with all coordinates if only a signle type of points is found.

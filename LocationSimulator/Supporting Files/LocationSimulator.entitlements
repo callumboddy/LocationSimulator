@@ -26,6 +26,7 @@
 	<array>
 		<string>(allow network-outbound (literal &quot;/private/var/run/usbmuxd&quot;))</string>
 		<string>(allow file-read* (home-subpath &quot;/Library/Developer/CoreSimulator&quot;))</string>
+		<string>(allow file-read* (subpath &quot;/private/var/run/com.apple.security.cryptexd/mnt&quot;))</string>
 	</array>
 </dict>
 </plist>

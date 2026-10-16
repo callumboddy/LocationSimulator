@@ -10,7 +10,7 @@ import Cocoa
 
 class AppDelegate: NSObject, NSApplicationDelegate {
 
-    @IBOutlet var menubarController: MenubarController!
+    var menubarController: MenubarController! = MenubarController()
 
     private var onboardingWindow: NSWindow?
 

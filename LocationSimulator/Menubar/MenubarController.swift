@@ -27,6 +27,12 @@ class MenubarController: NSResponder {
         return NSApp.windows.compactMap { $0.windowController as? WindowController }.first
     }
 
+    /// The map controller of the active window. Falls back to the SwiftUI window's map when there is no
+    /// AppKit `WindowController`.
+    private var mapViewController: MapViewController? {
+        return self.windowController?.mapViewController ?? MapActions.current?.mapViewController
+    }
+
     /// The current status.
     var deviceStatus: DeviceStatus = .disconnected
 
@@ -78,12 +84,17 @@ class MenubarController: NSResponder {
     public func registerNotifications() {
         self.statusObserver = NotificationCenter.default.addObserver(forName: .StatusChanged, object: nil,
                                                                      queue: .main) { [weak self] notification in
-            // Make sure the request is send from the key window subview.
-            guard let viewController = notification.object as? NSViewController,
-                  let windowController = viewController.view.window?.windowController,
-                  windowController == self?.windowController,
+            guard let self = self,
+                  let viewController = notification.object as? NSViewController,
                   let newState = notification.userInfo?["status"] as? DeviceStatus else { return }
-            self?.apply(status: newState)
+            if let windowController = self.windowController {
+                // Make sure the request is send from the key window subview.
+                guard viewController.view.window?.windowController == windowController else { return }
+            } else {
+                // SwiftUI window: the map controller is not part of a window, so match it directly.
+                guard viewController == MapActions.current?.mapViewController else { return }
+            }
+            self.apply(status: newState)
         }
 
         // Observe the search status.
@@ -168,7 +179,11 @@ class MenubarController: NSResponder {
         case .drive: moveType = .drive
         default: return
         }
-        self.windowController?.setMoveType(moveType)
+        if let windowController = self.windowController {
+            windowController.setMoveType(moveType)
+        } else {
+            MapActions.current?.moveType = moveType
+        }
     }
 
     /// Change the current speed
@@ -202,17 +217,15 @@ class MenubarController: NSResponder {
     }
 
     @IBAction func move(_ sender: NSMenuItem) {
-        guard let windowController = windowController else {
+        guard let mapViewController = self.mapViewController else {
             return
         }
 
-        let traditional = UserDefaults.standard.movementControlBehaviour == .traditional || self.deviceStatus == .auto
-
         switch NavigationMenubarItem(rawValue: sender.tag) {
-        case .moveRight: traditional ? windowController.rotate(.clockwise)        : windowController.moveNatural(.right)
-        case .moveLeft:  traditional ? windowController.rotate(.counterclockwise) : windowController.moveNatural(.left)
-        case .moveDown:  traditional ? windowController.moveTraditional(.down)    : windowController.moveNatural(.down)
-        case .moveUp:    traditional ? windowController.moveTraditional(.up)      : windowController.moveNatural(.up)
+        case .moveRight: mapViewController.handleArrowKey(.right)
+        case .moveLeft:  mapViewController.handleArrowKey(.left)
+        case .moveDown:  mapViewController.handleArrowKey(.down)
+        case .moveUp:    mapViewController.handleArrowKey(.up)
         default: break
         }
     }
